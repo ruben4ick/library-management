@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum LoanStatus {
+  ACTIVE
+  RETURNED
+}
+
+model Book {
+  id        String  @id @default(uuid())
+  title     String  @db.VarChar(100)
+  author    String  @db.VarChar(50)
+  year      Int
+  isbn      String  @unique @db.VarChar(20)
+  available Boolean @default(true)
+  loans     Loan[]
+
+  @@map("books")
+}
+
+model User {
+  id            String         @id @default(uuid())
+  name          String         @db.VarChar(100)
+  email         String         @unique @db.VarChar(255)
+  passwordHash  String         @map("password_hash") @db.VarChar(255)
+  role          UserRole       @default(USER)
+  loans         Loan[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+model Loan {
+  id         String     @id @default(uuid())
+  userId     String     @map("user_id")
+  bookId     String     @map("book_id")
+  loanDate   DateTime   @default(now()) @map("loan_date")
+  returnDate DateTime?  @map("return_date")
+  status     LoanStatus @default(ACTIVE)
+  user       User       @relation(fields: [userId], references: [id])
+  book       Book       @relation(fields: [bookId], references: [id])
+
+  @@map("loans")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique @db.VarChar(255)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
