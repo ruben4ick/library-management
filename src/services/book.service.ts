@@ -1,31 +1,29 @@
-import { randomUUID } from 'crypto';
-import { books } from '../storage';
-import { Book } from '../types';
-import { CreateBookDto, UpdateBookDto } from '../schemas/book.schema';
+import prisma from "../db/prisma";
+import type { CreateBookDto, UpdateBookDto } from "../schemas/book.schema";
 
-export function findAllBooks(): Book[] {
-  return Array.from(books.values());
+export async function findAllBooks() {
+  return prisma.book.findMany();
 }
 
-export function findBookById(id: string): Book | undefined {
-  return books.get(id);
+export async function findBookById(id: string) {
+  return prisma.book.findUnique({ where: { id } });
 }
 
-export function createBook(dto: CreateBookDto): Book {
-  const book: Book = { id: randomUUID(), available: true, ...dto };
-  books.set(book.id, book);
-  return book;
+export async function createBook(dto: CreateBookDto) {
+  return prisma.book.create({ data: dto });
 }
 
-export function updateBook(id: string, dto: UpdateBookDto): Book | undefined {
-  const book = books.get(id);
-  if (!book) return undefined;
+export async function updateBook(id: string, dto: UpdateBookDto) {
+  const book = await prisma.book.findUnique({ where: { id } });
+  if (!book) return null;
 
-  const updated = { ...book, ...dto };
-  books.set(id, updated);
-  return updated;
+  return prisma.book.update({ where: { id }, data: dto });
 }
 
-export function removeBook(id: string): boolean {
-  return books.delete(id);
+export async function removeBook(id: string) {
+  const book = await prisma.book.findUnique({ where: { id } });
+  if (!book) return false;
+
+  await prisma.book.delete({ where: { id } });
+  return true;
 }
