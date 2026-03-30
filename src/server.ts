@@ -1,11 +1,7 @@
-import app from "./app";
+import 'dotenv/config';
+import app from './app';
+import CONFIG from './config';
 
-const PORT = 8080;
-
-app.listen(PORT, (error) => {
-  if (error) {
-    throw error;
-  }
-
-  console.log(`Server running on port ${PORT}`);
+app.listen(CONFIG.port, () => {
+  console.log(`Server running on port ${CONFIG.port}`);
 });

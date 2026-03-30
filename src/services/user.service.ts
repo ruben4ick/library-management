@@ -1,18 +1,23 @@
-import { randomUUID } from 'crypto';
-import { users } from '../storage';
-import { User } from '../types';
-import { CreateUserDto } from '../schemas/user.schema';
+import prisma from '../db/prisma';
 
-export function findAllUsers(): User[] {
-  return Array.from(users.values());
+const userWithoutPassword = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+} as const;
+
+export async function findAllUsers() {
+  return prisma.user.findMany({ select: userWithoutPassword });
 }
 
-export function findUserById(id: string): User | undefined {
-  return users.get(id);
+export async function findUserById(id: string) {
+  return prisma.user.findUnique({
+    where: { id },
+    select: userWithoutPassword,
+  });
 }
 
-export function createUser(dto: CreateUserDto): User {
-  const user: User = { id: randomUUID(), ...dto };
-  users.set(user.id, user);
-  return user;
+export async function findByEmail(email: string) {
+  return prisma.user.findUnique({ where: { email } });
 }
