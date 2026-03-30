@@ -112,7 +112,6 @@ export async function refresh(refreshTokenValue: string) {
     throw new AuthError('Refresh token expired', 401);
   }
 
-  // Rotate: delete old, create new
   await prisma.refreshToken.delete({ where: { id: stored.id } });
 
   const tokenPayload: JwtPayload = {

@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import type { RequestWithUser } from './auth';
+import type { RequestWithUser } from './auth.middleware';
 import type { UserRole } from '../types';
 
 export function requireRole(...roles: UserRole[]) {
