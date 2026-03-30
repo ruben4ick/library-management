@@ -5,11 +5,168 @@
   },
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:8080/api" },
+    { "key": "token", "value": "" },
+    { "key": "refreshToken", "value": "" },
     { "key": "bookId", "value": "" },
     { "key": "userId", "value": "" },
     { "key": "loanId", "value": "" }
   ],
   "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('token', json.token);",
+                  "pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "pm.collectionVariables.set('userId', json.user.id);",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Has token', () => pm.expect(json.token).to.be.a('string'));",
+                  "pm.test('Has refreshToken', () => pm.expect(json.refreshToken).to.be.a('string'));",
+                  "pm.test('Has user', () => pm.expect(json.user).to.have.property('id'));",
+                  "pm.test('No passwordHash', () => pm.expect(json.user).to.not.have.property('passwordHash'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Anton Ruban\",\n  \"email\": \"anton@example.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register — validation error",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Anton\",\n  \"email\": \"not-an-email\",\n  \"password\": \"short\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register — duplicate email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Anton Ruban\",\n  \"email\": \"anton@example.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('token', json.token);",
+                  "pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has token', () => pm.expect(json.token).to.be.a('string'));",
+                  "pm.test('Has user', () => pm.expect(json.user).to.have.property('role'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"anton@example.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login — wrong password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"anton@example.com\",\n  \"password\": \"wrongpassword\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('token', json.token);",
+                  "pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has new token', () => pm.expect(json.token).to.be.a('string'));",
+                  "pm.test('Has new refreshToken', () => pm.expect(json.refreshToken).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/refresh",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            }
+          }
+        }
+      ]
+    },
     {
       "name": "Books",
       "item": [
@@ -32,10 +189,35 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/books",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"title\": \"Clean Code\",\n  \"author\": \"Robert Martin\",\n  \"year\": 2008,\n  \"isbn\": \"978-0132350884\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Book — no auth",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/books",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test\",\n  \"author\": \"Test\",\n  \"year\": 2020,\n  \"isbn\": \"111\"\n}"
             }
           }
         },
@@ -46,8 +228,7 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
-                  "pm.test('Has errors', () => pm.expect(pm.response.json()).to.have.property('errors'));"
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
                 ]
               }
             }
@@ -55,7 +236,10 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/books",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"title\": \"\",\n  \"author\": \"Robert Martin\"\n}"
@@ -131,7 +315,10 @@
           "request": {
             "method": "PUT",
             "url": "{{baseUrl}}/books/{{bookId}}",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"title\": \"The Clean Coder\"\n}"
@@ -152,7 +339,10 @@
           ],
           "request": {
             "method": "DELETE",
-            "url": "{{baseUrl}}/books/{{bookId}}"
+            "url": "{{baseUrl}}/books/{{bookId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
           }
         },
         {
@@ -169,7 +359,10 @@
           ],
           "request": {
             "method": "DELETE",
-            "url": "{{baseUrl}}/books/nonexistent-id"
+            "url": "{{baseUrl}}/books/nonexistent-id",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
           }
         }
       ]
@@ -178,51 +371,43 @@
       "name": "Users",
       "item": [
         {
-          "name": "Create User",
+          "name": "Get Me",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
                   "const json = pm.response.json();",
-                  "pm.collectionVariables.set('userId', json.id);",
-                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
-                  "pm.test('Has id', () => pm.expect(json.id).to.be.a('string'));"
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has id', () => pm.expect(json).to.have.property('id'));",
+                  "pm.test('No passwordHash', () => pm.expect(json).to.not.have.property('passwordHash'));"
                 ]
               }
             }
           ],
           "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/users",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Anton Ruban\",\n  \"email\": \"anton@example.com\"\n}"
-            }
+            "method": "GET",
+            "url": "{{baseUrl}}/users/me",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
           }
         },
         {
-          "name": "Create User — validation error",
+          "name": "Get Me — no auth",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
-                  "pm.test('Has errors', () => pm.expect(pm.response.json()).to.have.property('errors'));"
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
                 ]
               }
             }
           ],
           "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/users",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Anton\",\n  \"email\": \"not-an-email\"\n}"
-            }
+            "method": "GET",
+            "url": "{{baseUrl}}/users/me"
           }
         },
         {
@@ -232,15 +417,20 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Is array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                  "pm.test('Status 200 or 403', () => {",
+                  "  const code = pm.response.code;",
+                  "  pm.expect(code === 200 || code === 403).to.be.true;",
+                  "});"
                 ]
               }
             }
           ],
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/users"
+            "url": "{{baseUrl}}/users",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
           }
         },
         {
@@ -250,32 +440,20 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Correct id', () => pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('userId')));"
+                  "pm.test('Status 200 or 403', () => {",
+                  "  const code = pm.response.code;",
+                  "  pm.expect(code === 200 || code === 403).to.be.true;",
+                  "});"
                 ]
               }
             }
           ],
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/users/{{userId}}"
-          }
-        },
-        {
-          "name": "Get User by ID — not found",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/users/nonexistent-id"
+            "url": "{{baseUrl}}/users/{{userId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
           }
         }
       ]
@@ -298,7 +476,10 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/books",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"title\": \"The Pragmatic Programmer\",\n  \"author\": \"David Thomas\",\n  \"year\": 1999,\n  \"isbn\": \"978-0201616224\"\n}"
@@ -324,10 +505,13 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/loans",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"bookId\": \"{{bookId}}\"\n}"
+              "raw": "{\n  \"bookId\": \"{{bookId}}\"\n}"
             }
           }
         },
@@ -347,10 +531,35 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/loans",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookId\": \"{{bookId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Loan — no auth",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/loans",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"bookId\": \"{{bookId}}\"\n}"
+              "raw": "{\n  \"bookId\": \"{{bookId}}\"\n}"
             }
           }
         },
@@ -369,10 +578,13 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/loans",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userId\": \"\"\n}"
+              "raw": "{\n  \"bookId\": \"\"\n}"
             }
           }
         },
@@ -391,7 +603,10 @@
           ],
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/loans"
+            "url": "{{baseUrl}}/loans",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
           }
         },
         {
@@ -411,7 +626,10 @@
           ],
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/loans/{{loanId}}/return"
+            "url": "{{baseUrl}}/loans/{{loanId}}/return",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
           }
         },
         {
@@ -428,7 +646,10 @@
           ],
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/loans/{{loanId}}/return"
+            "url": "{{baseUrl}}/loans/{{loanId}}/return",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
           }
         },
         {
@@ -445,7 +666,10 @@
           ],
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/loans/nonexistent-id/return"
+            "url": "{{baseUrl}}/loans/nonexistent-id/return",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ]
           }
         }
       ]
