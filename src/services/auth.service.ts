@@ -1,11 +1,11 @@
-import { randomUUID } from 'crypto';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import type { StringValue } from 'ms';
-import prisma from '../db/prisma';
-import CONFIG from '../config';
-import type { RegisterDto, LoginDto } from '../schemas/auth.schema';
-import type { JwtPayload } from '../types';
+import { randomUUID } from "crypto";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import type { StringValue } from "ms";
+import prisma from "../db/prisma";
+import CONFIG from "../config";
+import type { RegisterDto, LoginDto } from "../schemas/auth.schema";
+import type { JwtPayload } from "../types";
 
 export class AuthError extends Error {
   constructor(
@@ -13,7 +13,7 @@ export class AuthError extends Error {
     public statusCode: number,
   ) {
     super(message);
-    this.name = 'AuthError';
+    this.name = "AuthError";
   }
 }
 
@@ -38,8 +38,10 @@ async function generateRefreshToken(userId: string): Promise<string> {
 }
 
 export async function register(dto: RegisterDto) {
-  const existing = await prisma.user.findUnique({ where: { email: dto.email } });
-  if (existing) throw new AuthError('Email already exists', 409);
+  const existing = await prisma.user.findUnique({
+    where: { email: dto.email },
+  });
+  if (existing) throw new AuthError("Email already exists", 409);
 
   const passwordHash = await bcrypt.hash(dto.password, 12);
 
@@ -74,10 +76,10 @@ export async function register(dto: RegisterDto) {
 
 export async function login(dto: LoginDto) {
   const user = await prisma.user.findUnique({ where: { email: dto.email } });
-  if (!user) throw new AuthError('Invalid email or password', 401);
+  if (!user) throw new AuthError("Invalid email or password", 401);
 
   const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
-  if (!isPasswordValid) throw new AuthError('Invalid email or password', 401);
+  if (!isPasswordValid) throw new AuthError("Invalid email or password", 401);
 
   const tokenPayload: JwtPayload = {
     userId: user.id,
@@ -106,10 +108,10 @@ export async function refresh(refreshTokenValue: string) {
     include: { user: true },
   });
 
-  if (!stored) throw new AuthError('Invalid refresh token', 401);
+  if (!stored) throw new AuthError("Invalid refresh token", 401);
   if (stored.expiresAt < new Date()) {
     await prisma.refreshToken.delete({ where: { id: stored.id } });
-    throw new AuthError('Refresh token expired', 401);
+    throw new AuthError("Refresh token expired", 401);
   }
 
   await prisma.refreshToken.delete({ where: { id: stored.id } });

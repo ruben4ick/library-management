@@ -1,4 +1,4 @@
-export type LoanStatus = 'ACTIVE' | 'RETURNED';
+export type LoanStatus = "ACTIVE" | "RETURNED";
 
 export type Loan = {
   id: string;

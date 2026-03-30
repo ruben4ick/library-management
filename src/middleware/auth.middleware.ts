@@ -1,7 +1,7 @@
-import jwt from 'jsonwebtoken';
-import type { Request, Response, NextFunction } from 'express';
-import type { JwtPayload } from '../types';
-import CONFIG from '../config';
+import jwt from "jsonwebtoken";
+import type { Request, Response, NextFunction } from "express";
+import type { JwtPayload } from "../types";
+import CONFIG from "../config";
 
 export interface RequestWithUser<
   P = {},
@@ -17,23 +17,27 @@ export function auth(req: Request, res: Response, next: NextFunction) {
   const { authorization } = req.headers;
 
   if (authorization === undefined) {
-    return res.status(401).json({ message: 'Please provide authorization token' });
+    return res
+      .status(401)
+      .json({ message: "Please provide authorization token" });
   }
 
-  if (!authorization.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'Please provide correct authorization token' });
+  if (!authorization.startsWith("Bearer ")) {
+    return res
+      .status(401)
+      .json({ message: "Please provide correct authorization token" });
   }
 
   const accessToken = authorization.slice(7);
 
   jwt.verify(accessToken, CONFIG.jwtSecret, (err, decoded) => {
     if (err) {
-      if (err.name === 'JsonWebTokenError') {
-        return res.status(401).json({ message: 'Access token is not valid' });
+      if (err.name === "JsonWebTokenError") {
+        return res.status(401).json({ message: "Access token is not valid" });
       }
 
-      if (err.name === 'TokenExpiredError') {
-        return res.status(401).json({ message: 'Access token is expired' });
+      if (err.name === "TokenExpiredError") {
+        return res.status(401).json({ message: "Access token is expired" });
       }
 
       return next(err);

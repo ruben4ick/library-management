@@ -1,5 +1,5 @@
-import prisma from '../db/prisma';
-import type { CreateBookDto, UpdateBookDto } from '../schemas/book.schema';
+import prisma from "../db/prisma";
+import type { CreateBookDto, UpdateBookDto } from "../schemas/book.schema";
 
 export async function findAllBooks() {
   return prisma.book.findMany();
