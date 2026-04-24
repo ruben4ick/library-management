@@ -5,6 +5,7 @@ const userWithoutPassword = {
   name: true,
   email: true,
   role: true,
+  avatarUrl: true,
 } as const;
 
 export async function findAllUsers() {
