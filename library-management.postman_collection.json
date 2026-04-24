@@ -139,6 +139,117 @@
           }
         },
         {
+          "name": "Request Password Reset",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has message', () => pm.expect(pm.response.json()).to.have.property('message'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/request-password-reset",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"anton@example.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Request Password Reset — nonexistent email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 (no leak)', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/request-password-reset",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"nobody@example.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Request Password Reset — validation error",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/request-password-reset",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"not-an-email\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Reset Password — invalid token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/reset-password",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"invalid-token\",\n  \"password\": \"newpassword123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Reset Password — validation error",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/reset-password",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"\",\n  \"password\": \"short\"\n}"
+            }
+          }
+        },
+        {
           "name": "Refresh Token",
           "event": [
             {
@@ -340,9 +451,7 @@
           "request": {
             "method": "DELETE",
             "url": "{{baseUrl}}/books/{{bookId}}",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ]
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         },
         {
@@ -360,9 +469,7 @@
           "request": {
             "method": "DELETE",
             "url": "{{baseUrl}}/books/nonexistent-id",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ]
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         }
       ]
@@ -388,9 +495,102 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/users/me",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ]
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Upload Avatar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has avatarUrl', () => pm.expect(json).to.have.property('avatarUrl'));",
+                  "pm.test('Has message', () => pm.expect(json).to.have.property('message'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/users/me/avatar",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "avatar",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Upload Avatar — no auth",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/users/me/avatar",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "avatar",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Avatar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has message', () => pm.expect(pm.response.json()).to.have.property('message'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/users/me/avatar",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Delete Avatar — not found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/users/me/avatar",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         },
         {
@@ -428,9 +628,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/users",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ]
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         },
         {
@@ -451,9 +649,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/users/{{userId}}",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ]
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         }
       ]
@@ -604,9 +800,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/loans",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ]
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         },
         {
@@ -627,9 +821,7 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/loans/{{loanId}}/return",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ]
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         },
         {
@@ -647,9 +839,7 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/loans/{{loanId}}/return",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ]
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         },
         {
@@ -667,9 +857,7 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/loans/nonexistent-id/return",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ]
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         }
       ]
