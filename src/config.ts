@@ -16,6 +16,12 @@ const CONFIG = {
     "7d",
   ),
   port: Number.parseInt(getEnvironmentVariable("PORT", "8080"), 10),
+  smtpHost: getEnvironmentVariable("SMTP_HOST", ""),
+  smtpPort: Number.parseInt(getEnvironmentVariable("SMTP_PORT", "587"), 10),
+  smtpAuthUser: getEnvironmentVariable("SMTP_AUTH_USER", ""),
+  smtpAuthPass: getEnvironmentVariable("SMTP_AUTH_PASS", ""),
+  senderEmail: getEnvironmentVariable("SENDER_EMAIL", "noreply@library.com"),
+  clientUrl: getEnvironmentVariable("CLIENT_URL", "http://localhost:3000"),
 };
 
 export default CONFIG;

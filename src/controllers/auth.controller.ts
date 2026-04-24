@@ -3,12 +3,16 @@ import {
   register as registerService,
   login as loginService,
   refresh as refreshService,
+  requestPasswordReset as requestPasswordResetService,
+  resetPassword as resetPasswordService,
   AuthError,
 } from "../services/auth.service";
 import {
   registerSchema,
   loginSchema,
   refreshSchema,
+  requestPasswordResetSchema,
+  resetPasswordSchema,
 } from "../schemas/auth.schema";
 
 export async function register(req: Request, res: Response) {
@@ -60,6 +64,45 @@ export async function refresh(req: Request, res: Response) {
   try {
     const data = await refreshService(result.data.refreshToken);
     res.status(200).json(data);
+  } catch (err) {
+    if (err instanceof AuthError) {
+      return res.status(err.statusCode).json({ message: err.message });
+    }
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+export async function requestPasswordReset(req: Request, res: Response) {
+  const result = requestPasswordResetSchema.safeParse(req.body);
+  if (!result.success) {
+    return res
+      .status(400)
+      .json({ message: "Validation error", errors: result.error.issues });
+  }
+
+  try {
+    await requestPasswordResetService(result.data.email);
+  } catch {
+    // Swallow errors to avoid leaking whether email exists
+  }
+
+  res.status(200).json({
+    message:
+      "Якщо вказаний email зареєстрований, лист з інструкціями надіслано.",
+  });
+}
+
+export async function resetPassword(req: Request, res: Response) {
+  const result = resetPasswordSchema.safeParse(req.body);
+  if (!result.success) {
+    return res
+      .status(400)
+      .json({ message: "Validation error", errors: result.error.issues });
+  }
+
+  try {
+    await resetPasswordService(result.data.token, result.data.password);
+    res.status(200).json({ message: "Пароль успішно змінено." });
   } catch (err) {
     if (err instanceof AuthError) {
       return res.status(err.statusCode).json({ message: err.message });
