@@ -71,6 +71,7 @@ export async function register(dto: RegisterDto) {
       email: user.email,
       name: user.name,
       role: user.role,
+      avatarUrl: user.avatarUrl,
     },
   };
 }
@@ -99,6 +100,7 @@ export async function login(dto: LoginDto) {
       email: user.email,
       name: user.name,
       role: user.role,
+      avatarUrl: user.avatarUrl,
     },
   };
 }
@@ -107,11 +109,9 @@ export async function requestPasswordReset(email: string): Promise<void> {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) return;
 
-  const token = jwt.sign(
-    { email: user.email },
-    CONFIG.jwtSecret,
-    { expiresIn: "10m" },
-  );
+  const token = jwt.sign({ email: user.email }, CONFIG.jwtSecret, {
+    expiresIn: "10m",
+  });
 
   const resetLink = `${CONFIG.clientUrl}/reset-password?token=${token}`;
 

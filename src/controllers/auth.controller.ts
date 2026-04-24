@@ -94,8 +94,7 @@ export async function requestPasswordReset(req: Request, res: Response) {
   }
 
   res.status(200).json({
-    message:
-      "Якщо вказаний email зареєстрований, лист з інструкціями надіслано.",
+    message: "Message sent successfully",
   });
 }
 

@@ -44,8 +44,8 @@ export async function uploadAvatar(req: Request, res: Response) {
     const oldPath = path.resolve(user.avatarUrl.replace(/^\//, ""));
     try {
       await fs.unlink(oldPath);
-    } catch {
-      // Old file may already be missing
+    } catch (err) {
+      console.warn("Could not delete old avatar file:", err);
     }
   }
 
@@ -74,8 +74,8 @@ export async function deleteAvatar(req: Request, res: Response) {
   const filePath = path.resolve(user.avatarUrl.replace(/^\//, ""));
   try {
     await fs.unlink(filePath);
-  } catch {
-    // File may already be missing
+  } catch (err) {
+    console.warn("Could not delete old avatar file:", err);
   }
 
   await prisma.user.update({
@@ -83,5 +83,5 @@ export async function deleteAvatar(req: Request, res: Response) {
     data: { avatarUrl: null },
   });
 
-  res.json({ message: "Аватарку видалено." });
+  res.json({ message: "Avatar deleted" });
 }
