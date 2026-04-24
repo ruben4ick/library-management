@@ -89,8 +89,8 @@ export async function requestPasswordReset(req: Request, res: Response) {
 
   try {
     await requestPasswordResetService(result.data.email);
-  } catch {
-    // Swallow errors to avoid leaking whether email exists
+  } catch (error) {
+    console.error("Password reset request failed:", error);
   }
 
   res.status(200).json({
