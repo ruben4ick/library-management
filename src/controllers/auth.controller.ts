@@ -1,10 +1,11 @@
-import { Request, Response } from "express";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import { Request, Response, NextFunction } from "express";
 import {
   register as registerService,
   login as loginService,
   refresh as refreshService,
   requestPasswordReset as requestPasswordResetService,
-  resetPassword as resetPasswordService,
   AuthError,
 } from "../services/auth.service";
 import {
@@ -14,6 +15,12 @@ import {
   requestPasswordResetSchema,
   resetPasswordSchema,
 } from "../schemas/auth.schema";
+import prisma from "../db/prisma";
+import CONFIG from "../config";
+
+interface ResetPasswordPayload extends jwt.JwtPayload {
+  email: string;
+}
 
 export async function register(req: Request, res: Response) {
   const result = registerSchema.safeParse(req.body);
@@ -92,7 +99,11 @@ export async function requestPasswordReset(req: Request, res: Response) {
   });
 }
 
-export async function resetPassword(req: Request, res: Response) {
+export async function resetPassword(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   const result = resetPasswordSchema.safeParse(req.body);
   if (!result.success) {
     return res
@@ -100,13 +111,35 @@ export async function resetPassword(req: Request, res: Response) {
       .json({ message: "Validation error", errors: result.error.issues });
   }
 
-  try {
-    await resetPasswordService(result.data.token, result.data.password);
-    res.status(200).json({ message: "Пароль успішно змінено." });
-  } catch (err) {
-    if (err instanceof AuthError) {
-      return res.status(err.statusCode).json({ message: err.message });
+  const { token, password } = result.data;
+
+  jwt.verify(token, CONFIG.jwtSecret, async (err, decoded) => {
+    if (err) {
+      if (err.name === "JsonWebTokenError") {
+        return res.status(400).json({ message: "Token is not valid" });
+      }
+
+      if (err.name === "TokenExpiredError") {
+        return res.status(400).json({ message: "Token is expired" });
+      }
+
+      return next(err);
     }
-    res.status(500).json({ message: "Internal server error" });
-  }
+
+    const email = (decoded as ResetPasswordPayload).email;
+
+    try {
+      const hashedPassword = await bcrypt.hash(password, 12);
+
+      await prisma.user.update({
+        where: { email },
+        data: { passwordHash: hashedPassword },
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+
+    res.status(200).json({ message: "Password successfully updated" });
+  });
 }

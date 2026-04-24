@@ -6,7 +6,7 @@ import prisma from "../db/prisma";
 import CONFIG from "../config";
 import type { RegisterDto, LoginDto } from "../schemas/auth.schema";
 import type { JwtPayload } from "../types";
-import { sendPasswordResetEmail } from "../utils/sendMail";
+import sendMail from "../utils/sendMail";
 
 export class AuthError extends Error {
   constructor(
@@ -108,41 +108,18 @@ export async function requestPasswordReset(email: string): Promise<void> {
   if (!user) return;
 
   const token = jwt.sign(
-    { email, purpose: "password-reset" },
+    { email: user.email },
     CONFIG.jwtSecret,
     { expiresIn: "10m" },
   );
 
-  await sendPasswordResetEmail(email, token);
-}
+  const resetLink = `${CONFIG.clientUrl}/reset-password?token=${token}`;
 
-export async function resetPassword(
-  token: string,
-  newPassword: string,
-): Promise<void> {
-  let payload: { email: string; purpose: string };
-
-  try {
-    payload = jwt.verify(token, CONFIG.jwtSecret) as typeof payload;
-  } catch {
-    throw new AuthError("Invalid or expired reset token", 400);
-  }
-
-  if (payload.purpose !== "password-reset") {
-    throw new AuthError("Invalid or expired reset token", 400);
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email: payload.email },
-  });
-  if (!user) {
-    throw new AuthError("Invalid or expired reset token", 400);
-  }
-
-  const passwordHash = await bcrypt.hash(newPassword, 12);
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { passwordHash },
+  await sendMail({
+    to: user.email,
+    subject: "Password Reset — Library Management",
+    text: `To reset your password please open this link: ${resetLink}`,
+    html: `<p>To reset your password please open this <a href="${resetLink}">link</a></p>`,
   });
 }
 
